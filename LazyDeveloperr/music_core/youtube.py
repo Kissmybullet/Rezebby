@@ -290,11 +290,6 @@ class YouTube:
         os.makedirs("downloads", exist_ok=True)
 
         safe_name = re.sub(r"[^\w\-_]", "_", video_id)
-        for ext in ("webm", "mp3", "m4a", "mp4", "mkv", "opus", "ogg"):
-            cached = os.path.join("downloads", f"{safe_name}.{ext}")
-            if os.path.exists(cached) and os.path.getsize(cached) > 65536:
-                logger.info(f"Cache hit: {cached}")
-                return cached
 
         loop = asyncio.get_event_loop()
 
@@ -309,6 +304,16 @@ class YouTube:
             # Strategy 1: Direct YouTube Download for 11-char Video IDs (Guarantees 100% exact original song track!)
             if len(video_id) == 11 and not video_id.startswith("sp_"):
                 yt_url = f"https://www.youtube.com/watch?v={video_id}"
+                # Purge any stale file from old JioSaavn bug to force fresh 100% original YouTube download
+                for old_ext in ("mp3", "m4a", "mp4", "webm", "opus", "mkv", "ogg"):
+                    old_f = os.path.join("downloads", f"{safe_name}.{old_ext}")
+                    if os.path.exists(old_f):
+                        try:
+                            os.remove(old_f)
+                            logger.info(f"[Music] Removed stale cached file: {old_f}")
+                        except Exception:
+                            pass
+
                 ydl_opts = {
                     "format": "bestaudio/best" if not video else "best[ext=mp4]/best",
                     "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
@@ -317,6 +322,7 @@ class YouTube:
                     "quiet": True,
                     "no_warnings": True,
                     "noplaylist": True,
+                    "overwrites": True,
                     "socket_timeout": 15,
                 }
                 try:
