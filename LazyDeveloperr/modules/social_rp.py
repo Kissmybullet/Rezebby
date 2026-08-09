@@ -121,10 +121,10 @@ async def get_rp_images(category: str) -> list[str]:
 
 
 async def add_rp_image(category: str, url: str) -> int:
-    """Add a new custom image URL/file_id to MongoDB collection list using ."""
+    """Add a new custom image URL/file_id to MongoDB collection list using $addToSet."""
     await db.db.social_rp.update_one(
         {"_id": category},
-        {"": {"urls": url}},
+        {"$addToSet": {"urls": url}},
         upsert=True
     )
     doc = await db.db.social_rp.find_one({"_id": category})
@@ -155,12 +155,12 @@ async def set_rp_img_handler(_, message: Message):
 
     if not img_url:
         return await message.reply_text(
-            f"? **Usage:** Reply to a Photo, GIF, or Video, or send link:\n/{cmd} <image_url> to append new pictures to {category.upper()} list."
+            f"❌ **Usage:** Reply to a Photo, GIF, or Video, or send link:\n/{cmd} <image_url> to append new pictures to {category.upper()} list."
         )
 
     count = await add_rp_image(category, img_url)
     await message.reply_text(
-        f"? **Successfully added picture/GIF to {category.upper()} list in MongoDB!** ?\n\nTotal pictures in {category.upper()} list: **{count}**"
+        f"✨ **Successfully added picture/GIF to {category.upper()} list in MongoDB!** ✨\n\nTotal pictures in {category.upper()} list: **{count}**"
     )
 
 
@@ -178,11 +178,11 @@ async def view_rp_img_handler(_, message: Message):
 
     if not urls:
         return await message.reply_text(
-            f"? **No custom images/GIFs stored in MongoDB for {category.upper()}!**\n\nUse /set_{category}_img to add custom images."
+            f"⚠️ **No custom images/GIFs stored in MongoDB for {category.upper()}!**\n\nUse /set_{category}_img to add custom images."
         )
 
     status_msg = await message.reply_text(
-        f"? **Fetching and sending {len(urls)} custom {category.upper()} pictures/GIFs to your PM...**"
+        f"🔄 **Fetching and sending {len(urls)} custom {category.upper()} pictures/GIFs to your PM...**"
     )
 
     success_count = 0
@@ -191,7 +191,7 @@ async def view_rp_img_handler(_, message: Message):
             await send_rp_media(
                 chat_id=user_id,
                 media_url_or_id=media_item,
-                caption=f"?? **{category.upper()} Custom Media ({idx}/{len(urls)})**"
+                caption=f"💖 **{category.upper()} Custom Media ({idx}/{len(urls)})**"
             )
             success_count += 1
         except Exception as e:
@@ -199,11 +199,11 @@ async def view_rp_img_handler(_, message: Message):
 
     if success_count > 0:
         await status_msg.edit_text(
-            f"? **Successfully sent {success_count}/{len(urls)} {category.upper()} pictures/GIFs to your PM!** Check your DM. ??"
+            f"✅ **Successfully sent {success_count}/{len(urls)} {category.upper()} pictures/GIFs to your PM!** Check your DM. 📩"
         )
     else:
         await status_msg.edit_text(
-            f"? **Failed to send media to your PM.** Please make sure you have started the bot in DM (/start)!"
+            f"❌ **Failed to send media to your PM.** Please make sure you have started the bot in DM (/start)!"
         )
 
 
@@ -228,14 +228,14 @@ async def remove_rp_img_handler(_, message: Message):
 
     if not img_url:
         return await message.reply_text(
-            "? **Usage:** Reply to a Photo, GIF, Sticker, or Video, or send link with /remove to delete it from MongoDB."
+            "❌ **Usage:** Reply to a Photo, GIF, Sticker, or Video, or send link with /remove to delete it from MongoDB."
         )
 
     removed_from = []
     for cat in ["kiss", "hug", "sex", "pat"]:
         res = await db.db.social_rp.update_one(
             {"_id": cat},
-            {"": {"urls": img_url}}
+            {"$pull": {"urls": img_url}}
         )
         if res.modified_count > 0:
             removed_from.append(cat.upper())
