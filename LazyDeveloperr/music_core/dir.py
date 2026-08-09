@@ -29,5 +29,12 @@ def ensure_dirs():
             logger.warning(f"static_ffmpeg auto-install failed: {e}")
 
     for dir_name in ["cache", "downloads"]:
-        Path(dir_name).mkdir(parents=True, exist_ok=True)
-    logger.info("Cache directories updated.")
+        p = Path(dir_name)
+        p.mkdir(parents=True, exist_ok=True)
+        if dir_name == "downloads":
+            for f in p.glob("*.*"):
+                try:
+                    f.unlink()
+                except Exception:
+                    pass
+    logger.info("Cache and downloads directories purged and updated.")

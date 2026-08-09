@@ -164,17 +164,8 @@ async def play_hndlr(
             return
 
     if not file.file_path:
-        fname_pattern = [
-            f"downloads/{file.id}.webm",
-            f"downloads/{file.id}.mp4",
-            f"downloads/{file.id}.m4a",
-        ]
-        cached = next((f for f in fname_pattern if Path(f).exists()), None)
-        if cached:
-            file.file_path = cached
-        else:
-            await sent.edit_text(m.lang["play_downloading"])
-            file.file_path = await yt.download(file.id, video=video, title=file.title)
+        await sent.edit_text(m.lang["play_downloading"])
+        file.file_path = await yt.download(file.id, video=video, title=file.title)
 
     if not file.file_path:
         return await sent.edit_text(
