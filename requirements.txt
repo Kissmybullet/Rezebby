@@ -63,3 +63,4 @@ unidecode
 psutil
 pyDes==2.0.1
 reportlab
+static-ffmpeg
