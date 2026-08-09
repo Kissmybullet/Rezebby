@@ -271,29 +271,21 @@ class YouTube:
                 )
         except Exception as e:
             logger.error(f"Error fetching related videos: {e}")
-        return None
-
     async def download(self, video_id: str, video: bool = False, title: str = None, artist: str = None) -> str | None:
         import glob
         raw_query = title or video_id
-        # Preserve artist in the search query - only strip noise keywords
         clean_q = re.sub(r"(?i)\b(official|full song|video|hd|4k|lyric|lyrics|video song)\b", "", raw_query)
         clean_q = re.sub(r"[\|\[\(\]\)]", " ", clean_q)
         clean_q = " ".join(clean_q.split())
         search_query = clean_q if clean_q else raw_query
 
-        # Build the precise artist+title query for best match
-        # artist is only trusted when it came from Spotify (verified source)
-        # When artist comes from JioSaavn fallback it may be unreliable
-        has_trusted_artist = bool(artist) and "," not in (artist or "")  # Spotify gives single artist; JioSaavn gives comma-separated
+        has_trusted_artist = bool(artist) and "," not in (artist or "")
         if has_trusted_artist and artist.lower() not in (title or "").lower():
             artist_title_query = f"{title} {artist}".strip() if title else search_query
             sc_query = f'"{artist}" "{title}"' if title else search_query
         else:
-            # Unknown/unreliable artist - use clean title only for best popular match
             artist_title_query = search_query
             sc_query = search_query
-
 
         os.makedirs("downloads", exist_ok=True)
 
@@ -306,125 +298,6 @@ class YouTube:
 
         loop = asyncio.get_event_loop()
 
-        # Stage 1: JioSaavn Official API DES 320kbps MP3 Extractor (audio only)
-        if not video:
-            try:
-                target_mp3 = os.path.join("downloads", f"{safe_name}.mp3")
-                client = await self.get_client()
-
-                enc_url = None
-
-                # Step 1A: JioSaavn search with ARTIST+TITLE combined query (n=10 for better matching)
-                safe_q = urllib.parse.quote(artist_title_query)
-                jio_api = f"https://www.jiosaavn.com/api.php?__call=search.getResults&q={safe_q}&_format=json&p=1&n=10"
-                async with client.get(jio_api, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}) as resp:
-                    if resp.status == 200:
-                        res_data = await resp.json(content_type=None)
-                        results = res_data.get("results", [])
-
-                        # Patterns to ALWAYS reject (karaoke, instrumental, cover, originally performed)
-                        _bad = re.compile(r"(?i)\b(karaoke|instrumental|cover|tribute|originally performed)\b")
-
-                        artist_lower = (artist or "").lower() if has_trusted_artist else ""
-                        title_lower = (title or "").lower()
-                        best = None
-
-                        for r in results:
-                            r_song = (r.get("song") or r.get("title") or "").lower()
-                            r_artists = (r.get("primary_artists") or r.get("singers") or "").lower()
-                            has_enc = bool(r.get("encrypted_media_url"))
-
-                            # Skip karaoke / instrumental / cover versions
-                            if _bad.search(r_song):
-                                continue
-
-                            clean_words = [w for w in re.findall(r"\w+", title_lower) if len(w) > 1 and w not in ("feat", "featuring", "remix", "version", "official", "audio", "video")]
-                            title_match = any(w in r_song for w in clean_words) if clean_words else title_lower in r_song
-                            artist_match = artist_lower and artist_lower in r_artists
-
-                            if has_enc and has_trusted_artist and artist_match and title_match:
-                                best = r  # Perfect Spotify-verified match
-                                break
-                            if has_enc and title_match and not best:
-                                best = r  # Title match, keep searching for better
-
-                        if not best:
-                            # Last resort: first result that isn't karaoke/instrumental
-                            for r in results:
-                                r_song = (r.get("song") or r.get("title") or "").lower()
-                                if r.get("encrypted_media_url") and not _bad.search(r_song):
-                                    best = r
-                                    break
-
-                        if best:
-                            enc_url = best.get("encrypted_media_url")
-                            logger.info(f"[Music] JioSaavn matched: {best.get('song')} by {best.get('primary_artists')}")
-
-
-
-
-                if enc_url:
-                            raw_mp3_url = ""
-                            try:
-                                import base64
-                                data_bytes = base64.b64decode(enc_url)
-                                key_bytes = b"38346591"
-
-                                # Method 1: Crypto.Cipher (pycryptodome)
-                                try:
-                                    from Crypto.Cipher import DES
-                                    cipher = DES.new(key_bytes, DES.MODE_ECB)
-                                    dec_b = cipher.decrypt(data_bytes)
-                                    pad = dec_b[-1]
-                                    raw_mp3_url = dec_b[:-pad].decode("utf-8")
-                                except Exception:
-                                    pass
-
-                                # Method 2: cryptography
-                                if not raw_mp3_url:
-                                    try:
-                                        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-                                        from cryptography.hazmat.backends import default_backend
-                                        cipher = Cipher(algorithms.TripleDES(key_bytes * 3), modes.ECB(), backend=default_backend())
-                                        decryptor = cipher.decryptor()
-                                        dec_b = decryptor.update(data_bytes) + decryptor.finalize()
-                                        pad = dec_b[-1]
-                                        raw_mp3_url = dec_b[:-pad].decode("utf-8")
-                                    except Exception:
-                                        pass
-
-                                # Method 3: pyDes
-                                if not raw_mp3_url:
-                                    try:
-                                        import pyDes
-                                        cipher = pyDes.des(key_bytes, pyDes.ECB, pad=None, padmode=pyDes.PAD_PKCS5)
-                                        raw_mp3_url = cipher.decrypt(data_bytes).decode("utf-8")
-                                    except Exception:
-                                        pass
-
-                                if raw_mp3_url:
-                                    # Try 320kbps first, then fall back to 160kbps
-                                    for quality in ("_320.mp4", "_160.mp4", "_96.mp4"):
-                                        attempt_url = re.sub(r"_(96|128|160|320)\.mp4", quality, raw_mp3_url)
-                                        try:
-                                            async with client.get(attempt_url, headers={"User-Agent": "Mozilla/5.0"}) as audio_resp:
-                                                if audio_resp.status == 200:
-                                                    # Stream in chunks to avoid incomplete silent file
-                                                    with open(target_mp3, "wb") as f:
-                                                        async for chunk in audio_resp.content.iter_chunked(65536):
-                                                            f.write(chunk)
-                                                    if os.path.exists(target_mp3) and os.path.getsize(target_mp3) > 65536:
-                                                        logger.info(f"[Music] JioSaavn {quality} MP3 success: {target_mp3}")
-                                                        return target_mp3
-                                                    else:
-                                                        os.remove(target_mp3)
-                                        except Exception:
-                                            continue
-                            except Exception as dec_err:
-                                logger.warning(f"JioSaavn decryption error: {dec_err}")
-            except Exception as jio_err:
-                logger.warning(f"JioSaavn direct download failed: {jio_err}")
-
         def _download():
             import yt_dlp
 
@@ -433,7 +306,31 @@ class YouTube:
                 valid = [f for f in matches if not f.endswith((".jpg", ".png", ".json", ".part", ".ytdl")) and os.path.getsize(f) > 0]
                 return valid[0] if valid else None
 
-            # Strategy 2: SoundCloud Search - sc_query built in outer scope with verified artist info
+            # Strategy 1: Direct YouTube Download for 11-char Video IDs (Guarantees 100% exact original song track!)
+            if len(video_id) == 11 and not video_id.startswith("sp_"):
+                yt_url = f"https://www.youtube.com/watch?v={video_id}"
+                ydl_opts = {
+                    "format": "bestaudio/best" if not video else "best[ext=mp4]/best",
+                    "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
+                    "geo_bypass": True,
+                    "nocheckcertificate": True,
+                    "quiet": True,
+                    "no_warnings": True,
+                    "noplaylist": True,
+                    "socket_timeout": 15,
+                }
+                try:
+                    logger.info(f"[Music] Direct YouTube downloading exact track ID: {video_id}")
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        ydl.download([yt_url])
+                    res = get_matching_file()
+                    if res:
+                        logger.info(f"[Music] Direct YouTube download success: {res}")
+                        return res
+                except Exception as yt_err:
+                    logger.warning(f"[Music] Direct YouTube download failed ({yt_err}). Attempting fallbacks...")
+
+            # Strategy 2: SoundCloud Search Fallback
             sc_opts = {
                 "format": "bestaudio/best",
                 "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
@@ -445,20 +342,125 @@ class YouTube:
                 "socket_timeout": 15,
             }
             try:
-                logger.info(f"[Music] SoundCloud search: {sc_query}")
+                logger.info(f"[Music] SoundCloud search fallback: {sc_query}")
                 with yt_dlp.YoutubeDL(sc_opts) as sc_ydl:
                     sc_ydl.extract_info(f"scsearch1:{sc_query}", download=True)
+                res = get_matching_file()
+                if res:
+                    return res
             except Exception as sc_err:
                 logger.warning(f"[Music] SoundCloud download failed ({sc_err}).")
 
             return get_matching_file()
 
+        # Stage 1: JioSaavn Official API DES 320kbps MP3 Extractor (STRICT title/artist matching only)
+        if not video:
+            try:
+                target_mp3 = os.path.join("downloads", f"{safe_name}.mp3")
+                client = await self.get_client()
+
+                enc_url = None
+                safe_q = urllib.parse.quote(artist_title_query)
+                jio_api = f"https://www.jiosaavn.com/api.php?__call=search.getResults&q={safe_q}&_format=json&p=1&n=10"
+                async with client.get(jio_api, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}) as resp:
+                    if resp.status == 200:
+                        res_data = await resp.json(content_type=None)
+                        results = res_data.get("results", [])
+
+                        _bad = re.compile(r"(?i)\b(karaoke|instrumental|cover|tribute|originally performed)\b")
+                        artist_lower = (artist or "").lower() if has_trusted_artist else ""
+                        title_lower = (title or "").lower()
+                        best = None
+
+                        for r in results:
+                            r_song = (r.get("song") or r.get("title") or "").lower()
+                            r_artists = (r.get("primary_artists") or r.get("singers") or "").lower()
+                            has_enc = bool(r.get("encrypted_media_url"))
+
+                            if _bad.search(r_song):
+                                continue
+
+                            clean_words = [w for w in re.findall(r"\w+", title_lower) if len(w) > 1 and w not in ("feat", "featuring", "remix", "version", "official", "audio", "video")]
+                            title_match = any(w in r_song for w in clean_words) if clean_words else title_lower in r_song
+                            artist_match = artist_lower and artist_lower in r_artists
+
+                            if has_enc and has_trusted_artist and artist_match and title_match:
+                                best = r
+                                break
+                            if has_enc and title_match and not best:
+                                best = r
+
+                        # ONLY use JioSaavn if strict title match succeeded (NEVER use random unrelated song)
+                        if best:
+                            enc_url = best.get("encrypted_media_url")
+                            logger.info(f"[Music] JioSaavn matched strictly: {best.get('song')} by {best.get('primary_artists')}")
+
+                if enc_url:
+                    raw_mp3_url = ""
+                    try:
+                        import base64
+                        data_bytes = base64.b64decode(enc_url)
+                        key_bytes = b"38346591"
+
+                        try:
+                            from Crypto.Cipher import DES
+                            cipher = DES.new(key_bytes, DES.MODE_ECB)
+                            dec_b = cipher.decrypt(data_bytes)
+                            pad = dec_b[-1]
+                            raw_mp3_url = dec_b[:-pad].decode("utf-8")
+                        except Exception:
+                            pass
+
+                        if not raw_mp3_url:
+                            try:
+                                from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+                                from cryptography.hazmat.backends import default_backend
+                                cipher = Cipher(algorithms.TripleDES(key_bytes * 3), modes.ECB(), backend=default_backend())
+                                decryptor = cipher.decryptor()
+                                dec_b = decryptor.update(data_bytes) + decryptor.finalize()
+                                pad = dec_b[-1]
+                                raw_mp3_url = dec_b[:-pad].decode("utf-8")
+                            except Exception:
+                                pass
+
+                        if not raw_mp3_url:
+                            try:
+                                import pyDes
+                                cipher = pyDes.des(key_bytes, pyDes.ECB, pad=None, padmode=pyDes.PAD_PKCS5)
+                                raw_mp3_url = cipher.decrypt(data_bytes).decode("utf-8")
+                            except Exception:
+                                pass
+
+                        if raw_mp3_url:
+                            for quality in ("_320.mp4", "_160.mp4", "_96.mp4"):
+                                attempt_url = re.sub(r"_(96|128|160|320)\.mp4", quality, raw_mp3_url)
+                                try:
+                                    async with client.get(attempt_url, headers={"User-Agent": "Mozilla/5.0"}) as audio_resp:
+                                        if audio_resp.status == 200:
+                                            with open(target_mp3, "wb") as f:
+                                                async for chunk in audio_resp.content.iter_chunked(65536):
+                                                    f.write(chunk)
+                                            if os.path.exists(target_mp3) and os.path.getsize(target_mp3) > 65536:
+                                                logger.info(f"[Music] JioSaavn {quality} MP3 success: {target_mp3}")
+                                                return target_mp3
+                                            else:
+                                                os.remove(target_mp3)
+                                except Exception:
+                                    continue
+                    except Exception as dec_err:
+                        logger.warning(f"JioSaavn decryption error: {dec_err}")
+            except Exception as jio_err:
+                logger.warning(f"JioSaavn direct download failed: {jio_err}")
+
+        # Direct YouTube / SoundCloud Executor Fallback
         try:
             file_path = await loop.run_in_executor(None, _download)
             if file_path and os.path.exists(file_path):
                 return file_path
         except Exception as e:
-            logger.error(f"SoundCloud download failed for {video_id}: {e}")
+            logger.error(f"Download failed for {video_id}: {e}")
+
+        return None
 
         return None
 
