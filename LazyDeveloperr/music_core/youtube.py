@@ -118,41 +118,54 @@ class YouTube:
     async def search(self, query: str, m_id: int, video: bool = False) -> Track | None:
         from LazyDeveloperr.music_core.spotify import spotify
 
-        # Step 1: Spotify Web API (PRIMARY SEARCH ENGINE for metadata)
+        search_term = query.strip()
+
+        # Step 1: Spotify Web API / Public oEmbed Resolution (If Spotify link or query)
+        if spotify.valid(query) or "open.spotify.com" in query or "spotify:" in query:
+            try:
+                sp_title = await spotify.track(query)
+                if sp_title:
+                    search_term = sp_title
+                    logger.info(f"[Spotify Resolved] Query '{query}' -> '{sp_title}'")
+            except Exception as sp_err:
+                logger.warning(f"[Spotify Track Resolve] Failed: {sp_err}")
+
+        # Step 2: Primary Engine - YouTube VideosSearch for Exact Song Matching
         try:
-            sp_res = None
-            if "open.spotify.com" in query or "spotify:" in query:
-                if "track" in query:
-                    sp_title = await spotify.track(query)
-                    if sp_title:
-                        sp_res = await spotify.search_track(sp_title)
-            else:
-                sp_res = await spotify.search_track(query)
+            results = await VideosSearch(search_term, limit=5).next()
+            if isinstance(results, dict) and results.get("result"):
+                vids = results["result"]
+                if vids:
+                    item = vids[0]
+                    vid_id = item.get("id")
+                    vid_title = item.get("title", search_term)
+                    channel = item.get("channel", {}).get("name", "YouTube")
+                    dur = item.get("duration", "03:30")
+                    dur_sec = utils.to_seconds(dur)
+                    thumb = item.get("thumbnails", [{}])[-1].get("url", "").split("?")[0]
+                    vid_url = item.get("link") or f"https://www.youtube.com/watch?v={vid_id}"
 
-            if sp_res:
-                sp_artist = sp_res.get("artist") or ""
-                sp_song_name = sp_res.get("title") or ""
-                logger.info(f"[Spotify] Found: {sp_song_name} by {sp_artist}")
-                return Track(
-                    id=sp_res.get("id") or ("sp_" + re.sub(r"[^\w]", "", sp_song_name)),
-                    channel_name=sp_artist or "Spotify",
-                    duration=sp_res.get("duration_str") or "03:30",
-                    duration_sec=sp_res.get("duration_sec") or 210,
-                    message_id=m_id,
-                    title=sp_song_name,
-                    thumbnail=sp_res.get("thumbnail") or "",
-                    url=sp_res.get("url") or "",
-                    view_count="",
-                    video=video,
-                    artist=sp_artist,
-                )
-        except Exception as sp_err:
-            logger.warning(f"[Spotify] Search failed: {sp_err}. Falling back to JioSaavn.")
+                    logger.info(f"[YouTube Search] Matched exact track: '{vid_title}' ({vid_id}) for '{search_term}'")
+                    return Track(
+                        id=vid_id,
+                        channel_name=channel,
+                        duration=dur,
+                        duration_sec=dur_sec,
+                        message_id=m_id,
+                        title=vid_title[:60],
+                        thumbnail=thumb,
+                        url=vid_url,
+                        view_count="",
+                        video=video,
+                        artist=channel,
+                    )
+        except Exception as yt_err:
+            logger.warning(f"[YouTube Search] Failed for '{search_term}': {yt_err}")
 
-        # Step 2: JioSaavn Direct API Search (fallback when Spotify fails/unavailable)
+        # Step 3: JioSaavn Direct API Search (Fallback if YouTube Search is unavailable)
         try:
             client = await self.get_client()
-            safe_q = urllib.parse.quote(query)
+            safe_q = urllib.parse.quote(search_term)
             jio_api = f"https://www.jiosaavn.com/api.php?__call=search.getResults&q={safe_q}&_format=json&p=1&n=10"
             async with client.get(jio_api, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}) as resp:
                 if resp.status == 200:
@@ -175,7 +188,7 @@ class YouTube:
                         if image_url:
                             image_url = image_url.replace("150x150", "500x500").replace("50x50", "500x500")
                         artists = valid_item.get("primary_artists") or valid_item.get("singers") or "JioSaavn"
-                        song_title = valid_item.get("song") or valid_item.get("title") or query
+                        song_title = valid_item.get("song") or valid_item.get("title") or search_term
                         logger.info(f"[JioSaavn] Fallback found: {song_title} by {artists}")
                         return Track(
                             id=valid_item.get("id"),

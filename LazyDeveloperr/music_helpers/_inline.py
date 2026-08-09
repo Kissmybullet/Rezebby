@@ -111,48 +111,39 @@ class Inline:
     def help_markup(
         self, _lang: dict, back: bool = False
     ) -> types.InlineKeyboardMarkup:
+        rows = []
+        cbs = [
+            "admins",
+            "auth",
+            "blist",
+            "lang",
+            "ping",
+            "play",
+            "queue",
+            "stats",
+            "sudo",
+            "thumb",
+            "vclog",
+            "autoplay",
+        ]
+        buttons = [
+            self.ikb(text=_lang[f"help_{i}"], callback_data=f"help {cb}")
+            for i, cb in enumerate(cbs)
+        ]
+        rows += [buttons[i : i + 3] for i in range(0, len(buttons), 3)]
         if back:
-            rows = [
-                [
-                    self.ikb(text=_lang["back"], callback_data="help back"),
-                    self.ikb(text=_lang["cancel"], callback_data="help close"),
-                ]
-            ]
-            bot_name = app.me.username if getattr(app, "me", None) else BOT_USERNAME
-            rows = [
-                [
-                    self.ikb(
-                        text=_lang["add_me"],
-                        url=f"https://t.me/{bot_name}?startgroup=true",
-                    )
-                ]
-            ]
-            cbs = [
-                "admins",
-                "auth",
-                "blist",
-                "lang",
-                "ping",
-                "play",
-                "queue",
-                "stats",
-                "sudo",
-                "thumb",
-                "vclog",
-                "autoplay",
-            ]
-            buttons = [
-                self.ikb(text=_lang[f"help_{i}"], callback_data=f"help {cb}")
-                for i, cb in enumerate(cbs)
-            ]
-            rows += [buttons[i : i + 3] for i in range(0, len(buttons), 3)]
             rows.append(
                 [
                     self.ikb(text=_lang["back"], callback_data="help home"),
                     self.ikb(text=_lang["cancel"], callback_data="help close"),
                 ]
             )
-
+        else:
+            rows.append(
+                [
+                    self.ikb(text=_lang["cancel"], callback_data="help close"),
+                ]
+            )
         return self.ikm(rows)
 
     def song_markup(self, vid_id: str) -> types.InlineKeyboardMarkup:
