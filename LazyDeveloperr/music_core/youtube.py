@@ -288,12 +288,11 @@ class YouTube:
             sc_query = search_query
 
         os.makedirs("downloads", exist_ok=True)
-
         safe_name = re.sub(r"[^\w\-_]", "_", video_id)
 
         loop = asyncio.get_event_loop()
 
-        def _download():
+        def _yt_download():
             import yt_dlp
 
             def get_matching_file():
@@ -301,10 +300,9 @@ class YouTube:
                 valid = [f for f in matches if not f.endswith((".jpg", ".png", ".json", ".part", ".ytdl")) and os.path.getsize(f) > 0]
                 return valid[0] if valid else None
 
-            # Strategy 1: Direct YouTube Download for 11-char Video IDs (Guarantees 100% exact original song track!)
+            # Strategy 1: Direct YouTube Stream Download (Guarantees 100% exact matched song!)
             if len(video_id) == 11 and not video_id.startswith("sp_"):
                 yt_url = f"https://www.youtube.com/watch?v={video_id}"
-                # Purge any stale file from old JioSaavn bug to force fresh 100% original YouTube download
                 for old_ext in ("mp3", "m4a", "mp4", "webm", "opus", "mkv", "ogg"):
                     old_f = os.path.join("downloads", f"{safe_name}.{old_ext}")
                     if os.path.exists(old_f):
@@ -323,7 +321,7 @@ class YouTube:
                     "no_warnings": True,
                     "noplaylist": True,
                     "overwrites": True,
-                    "socket_timeout": 15,
+                    "socket_timeout": 20,
                 }
                 try:
                     logger.info(f"[Music] Direct YouTube downloading exact track ID: {video_id}")
@@ -359,7 +357,15 @@ class YouTube:
 
             return get_matching_file()
 
-        # Stage 1: JioSaavn Official API DES 320kbps MP3 Extractor (STRICT title/artist matching only)
+        # Step 1: ALWAYS ATTEMPT DIRECT YOUTUBE STREAM DOWNLOAD FIRST FOR 100% ACCURACY
+        try:
+            file_path = await loop.run_in_executor(None, _yt_download)
+            if file_path and os.path.exists(file_path):
+                return file_path
+        except Exception as e:
+            logger.warning(f"YouTube direct stream download attempt error: {e}")
+
+        # Step 2: JioSaavn Fallback (ONLY if YouTube direct download failed)
         if not video:
             try:
                 target_mp3 = os.path.join("downloads", f"{safe_name}.mp3")
@@ -378,6 +384,7 @@ class YouTube:
                         title_lower = (title or "").lower()
                         best = None
 
+                        clean_words = [w for w in re.findall(r"\w+", title_lower) if len(w) > 2 and w not in ("feat", "featuring", "remix", "version", "official", "audio", "video", "sang", "song")]
                         for r in results:
                             r_song = (r.get("song") or r.get("title") or "").lower()
                             r_artists = (r.get("primary_artists") or r.get("singers") or "").lower()
@@ -386,8 +393,8 @@ class YouTube:
                             if _bad.search(r_song):
                                 continue
 
-                            clean_words = [w for w in re.findall(r"\w+", title_lower) if len(w) > 1 and w not in ("feat", "featuring", "remix", "version", "official", "audio", "video")]
-                            title_match = any(w in r_song for w in clean_words) if clean_words else title_lower in r_song
+                            # Require all significant title words to match for JioSaavn
+                            title_match = all(w in r_song for w in clean_words) if clean_words else title_lower in r_song
                             artist_match = artist_lower and artist_lower in r_artists
 
                             if has_enc and has_trusted_artist and artist_match and title_match:
@@ -396,7 +403,6 @@ class YouTube:
                             if has_enc and title_match and not best:
                                 best = r
 
-                        # ONLY use JioSaavn if strict title match succeeded (NEVER use random unrelated song)
                         if best:
                             enc_url = best.get("encrypted_media_url")
                             logger.info(f"[Music] JioSaavn matched strictly: {best.get('song')} by {best.get('primary_artists')}")
@@ -457,14 +463,6 @@ class YouTube:
                         logger.warning(f"JioSaavn decryption error: {dec_err}")
             except Exception as jio_err:
                 logger.warning(f"JioSaavn direct download failed: {jio_err}")
-
-        # Direct YouTube / SoundCloud Executor Fallback
-        try:
-            file_path = await loop.run_in_executor(None, _download)
-            if file_path and os.path.exists(file_path):
-                return file_path
-        except Exception as e:
-            logger.error(f"Download failed for {video_id}: {e}")
 
         return None
 
