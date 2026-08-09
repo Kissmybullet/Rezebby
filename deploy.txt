@@ -1,0 +1,122 @@
+====================================================================
+               LAZYLADY TELEGRAM BOT DEPLOYMENT GUIDE
+====================================================================
+Maintained & Crafted By: LazyDeveloper (https://t.me/LazyDeveloperr)
+Telegram Channel: https://t.me/LazyDeveloper
+GitHub Repository: https://github.com/LazyDeveloperr
+====================================================================
+
+--------------------------------------------------------------------
+1. REQUIRED ENVIRONMENT VARIABLES
+--------------------------------------------------------------------
+API_ID              - Telegram API ID from https://my.telegram.org
+API_HASH            - Telegram API Hash from https://my.telegram.org
+TOKEN               - Telegram Bot Token from @BotFather
+OWNER_ID            - Telegram User ID of Bot Owner
+LOGGER_ID           - Database / Log Channel ID (e.g. -100123456789)
+DATABASE_URL        - PostgreSQL Database URI
+MONGO_DB_URI        - MongoDB Connection URI (Atlas / Local)
+SPOTIFY_CLIENT_ID   - (Optional) Spotify Client ID
+SPOTIFY_CLIENT_SECRET - (Optional) Spotify Client Secret
+
+
+--------------------------------------------------------------------
+2. HEROKU DEPLOYMENT GUIDE
+--------------------------------------------------------------------
+Method A: Direct Deploy Link
+----------------------------
+1. Open this URL in your browser:
+   https://heroku.com/deploy?template=https://github.com/
+
+2. Fill in all required environment variables:
+   API_ID, API_HASH, TOKEN, OWNER_ID, LOGGER_ID, DATABASE_URL, MONGO_DB_URI
+
+3. Click "Deploy App".
+4. Once deployment is complete, go to the "Resources" tab.
+5. Turn ON the "worker" dyno:
+   worker: python3 -m LazyDeveloperr
+6. Your bot is now live!
+
+
+Method B: Heroku CLI Deploy
+---------------------------
+1. Install Heroku CLI on your system and log in:
+   heroku login
+
+2. Create a new Heroku app:
+   heroku create your-bot-app-name
+
+3. Set stack and buildpacks:
+   heroku buildpacks:add --index 1 heroku/python
+   heroku buildpacks:add --index 2 https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git
+
+4. Set environment variables:
+   heroku config:set API_ID="your_api_id"
+   heroku config:set API_HASH="your_api_hash"
+   heroku config:set TOKEN="your_bot_token"
+   heroku config:set OWNER_ID="your_owner_id"
+   heroku config:set LOGGER_ID="your_logger_id"
+   heroku config:set DATABASE_URL="your_postgres_url"
+   heroku config:set MONGO_DB_URI="your_mongodb_uri"
+
+5. Push code to Heroku:
+   git push heroku main
+
+6. Scale worker dyno:
+   heroku ps:scale worker=1
+
+
+--------------------------------------------------------------------
+3. VPS DEPLOYMENT GUIDE (Linux / Ubuntu / Debian)
+--------------------------------------------------------------------
+Step 1: Install System Dependencies
+-----------------------------------
+sudo apt update && sudo apt upgrade -y
+sudo apt install python3 python3-pip python3-venv ffmpeg libopus0 libopus-dev git screen -y
+
+Step 2: Clone the Repository
+----------------------------
+git clone https://github.com/lazydeveloperr/xYx.git
+cd lazylady
+
+Step 3: Create & Activate Virtual Environment
+---------------------------------------------
+python3 -m venv env
+source env/bin/activate
+
+Step 4: Install Python Requirements
+-----------------------------------
+pip3 install -r requirements.txt
+
+Step 5: Create .env Configuration File
+--------------------------------------
+nano .env
+
+Paste your environment variables into .env:
+API_ID=36380385
+API_HASH=0b7c0680e7b657e4f14895e26ceadd4b
+TOKEN=your_bot_token
+OWNER_ID=your_owner_id
+LOGGER_ID=your_logger_id
+DATABASE_URL=your_postgres_url
+MONGO_DB_URI=your_mongodb_uri
+
+Save and exit: Press Ctrl+O, Enter, Ctrl+X.
+
+Step 6: Run Bot 24/7 in Background using Screen
+-----------------------------------------------
+screen -S lazybot
+python3 -m LazyDeveloperr
+
+Detach from screen: Press Ctrl+A then D.
+
+To view bot logs again later:
+screen -r lazybot
+
+
+====================================================================
+CREDITS & SUPPORT:
+- Maintained & Crafted By: LazyDeveloper (https://t.me/LazyDeveloperr)
+- Channel: https://t.me/LazyDeveloper
+- Repository: https://github.com/LazyDeveloperr
+====================================================================

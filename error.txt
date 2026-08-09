@@ -1,0 +1,220 @@
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+307 error_callback __main__.py
+> raise error
+
+---
+
+557 process_update dispatcher.py
+> handler.handle_update(update, self, check, context)
+
+---
+
+109 handle_update handlers.py
+> return self.callback(update, context)
+
+---
+
+243 start __main__.py
+> x=update.effective_message.reply_sticker(
+
+---
+
+1458 reply_sticker message.py
+> return self.bot.send_sticker(
+
+---
+
+134 decorator bot.py
+> result = func(*args, **kwargs)
+
+---
+
+1083 send_sticker bot.py
+> return self._message(  # type: ignore[return-value]
+
+---
+
+203 _message extbot.py
+> result = super()._message(
+
+---
+
+344 _message bot.py
+> result = self._post(endpoint, data, timeout=timeout, api_kwargs=api_kwargs)
+
+---
+
+299 _post bot.py
+> return self.request.post(
+
+---
+
+361 post request.py
+> result = self._request_wrapper(
+
+---
+
+265 _request_wrapper request.py
+> raise NetworkError(f'urllib3 HTTPError {error}') from error
+
+telegram.error.NetworkError
+
+-------------------------------------------------------------------------------
+An exception was raised while handling an update
+User: 5817124748
+Chat: None 5817124748
+Callback data: None
+Message: /start
+
+Full Traceback: Traceback (most recent call last):
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\connectionpool.py", line 716, in urlopen
+    httplib_response = self._make_request(
+        conn,
+    ...<5 lines>...
+        chunked=chunked,
+    )
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\connectionpool.py", line 468, in _make_request
+    six.raise_from(e, None)
+    ~~~~~~~~~~~~~~^^^^^^^^^
+  File "<string>", line 3, in raise_from
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\connectionpool.py", line 463, in _make_request
+    httplib_response = conn.getresponse()
+  File "C:\Python313\Lib\http\client.py", line 1430, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\http\client.py", line 331, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\http\client.py", line 292, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\socket.py", line 719, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Python313\Lib\ssl.py", line 1304, in recv_into
+    return self.read(nbytes, buffer)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\ssl.py", line 1138, in read
+    return self._sslobj.read(len, buffer)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\utils\request.py", line 259, in _request_wrapper
+    resp = self._con_pool.request(*args, **kwargs)
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\request.py", line 81, in request
+    return self.request_encode_body(
+           ~~~~~~~~~~~~~~~~~~~~~~~~^
+        method, url, fields=fields, headers=headers, **urlopen_kw
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\request.py", line 173, in request_encode_body
+    return self.urlopen(method, url, **extra_kw)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\poolmanager.py", line 376, in urlopen
+    response = conn.urlopen(method, u.request_uri, **kw)
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\connectionpool.py", line 802, in urlopen
+    retries = retries.increment(
+        method, url, error=e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\util\retry.py", line 552, in increment
+    raise six.reraise(type(error), error, _stacktrace)
+          ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\packages\six.py", line 769, in reraise
+    raise value.with_traceback(tb)
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\connectionpool.py", line 716, in urlopen
+    httplib_response = self._make_request(
+        conn,
+    ...<5 lines>...
+        chunked=chunked,
+    )
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\connectionpool.py", line 468, in _make_request
+    six.raise_from(e, None)
+    ~~~~~~~~~~~~~~^^^^^^^^^
+  File "<string>", line 3, in raise_from
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\urllib3\connectionpool.py", line 463, in _make_request
+    httplib_response = conn.getresponse()
+  File "C:\Python313\Lib\http\client.py", line 1430, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\http\client.py", line 331, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\http\client.py", line 292, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\socket.py", line 719, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Python313\Lib\ssl.py", line 1304, in recv_into
+    return self.read(nbytes, buffer)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\ssl.py", line 1138, in read
+    return self._sslobj.read(len, buffer)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\LazyDeveloperr\__main__.py", line 307, in error_callback
+    raise error
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\ext\dispatcher.py", line 557, in process_update
+    handler.handle_update(update, self, check, context)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\LazyDeveloperr\modules\helper_funcs\handlers.py", line 109, in handle_update
+    return self.callback(update, context)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\LazyDeveloperr\__main__.py", line 243, in start
+    x=update.effective_message.reply_sticker(
+        "CAACAgUAAxkBAAI33mLYLNLilbRI-sKAAob0P7koTEJNAAIOBAACl42QVKnra4sdzC_uKQQ")
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\message.py", line 1458, in reply_sticker
+    return self.bot.send_sticker(
+           ~~~~~~~~~~~~~~~~~~~~~^
+        chat_id=self.chat_id,
+        ^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+        message_thread_id=message_thread_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\bot.py", line 134, in decorator
+    result = func(*args, **kwargs)
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\bot.py", line 1083, in send_sticker
+    return self._message(  # type: ignore[return-value]
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        'sendSticker',
+        ^^^^^^^^^^^^^^
+    ...<8 lines>...
+        message_thread_id=message_thread_id,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\ext\extbot.py", line 203, in _message
+    result = super()._message(
+        endpoint=endpoint,
+    ...<8 lines>...
+        message_thread_id=message_thread_id,
+    )
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\bot.py", line 344, in _message
+    result = self._post(endpoint, data, timeout=timeout, api_kwargs=api_kwargs)
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\bot.py", line 299, in _post
+    return self.request.post(
+           ~~~~~~~~~~~~~~~~~^
+        f'{self.base_url}/{endpoint}', data=data, timeout=effective_timeout
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\utils\request.py", line 361, in post
+    result = self._request_wrapper(
+        'POST',
+    ...<3 lines>...
+        **urlopen_kwargs,
+    )
+  File "C:\Users\lpy\Desktop\work\ANTI-GRAVITY\NOIR\LadyRezebb\env\Lib\site-packages\telegram\utils\request.py", line 265, in _request_wrapper
+    raise NetworkError(f'urllib3 HTTPError {error}') from error
+telegram.error.NetworkError: urllib3 HTTPError ('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))
