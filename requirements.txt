@@ -1,7 +1,6 @@
 aiohttp>=3.10.0
 alphabet_detector
 apscheduler==3.6.3
-asyncio==3.4.3
 beautifulsoup4==4.12.3
 bing_image_downloader==1.1.2
 bleach==6.1.0
@@ -24,16 +23,14 @@ hachoir==3.3.0
 heroku3
 html2text==2024.2.26
 jikanpy==4.3.2
-lxml>=5.0.0
+lxml
 markdown2==2.5.0
 MukeshAPI
 motor==3.6.0
 nekos.py
-opencv-python
+opencv-python-headless
 pretty-errors
 pyfiglet
-# pykeyboard (installed separately via --no-deps)
-
 pymongo==4.9.2
 pynewtonmath==1.0.1
 pyrate-limiter==2.10.0
@@ -41,11 +38,11 @@ pyshorteners
 pyrogram==2.0.106
 python-telegram-bot==13.15
 standard-imghdr
-setuptools<76
+setuptools
 python-dotenv
 py-tgcalls==2.3.3
-py-yt-search>=0.6.2,<0.8.0
-regex>=2024.9.11
+py-yt-search
+regex
 requests==2.32.3
 search-engine-parser==0.6.2
 secureme==0.0.4
@@ -65,3 +62,4 @@ PyDictionary
 unidecode
 psutil
 pyDes==2.0.1
+reportlab
