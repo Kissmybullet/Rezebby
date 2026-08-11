@@ -18,14 +18,15 @@ from LazyDeveloperr import app, config, db, lang
 from LazyDeveloperr.music_helpers import buttons, utils
 
 
-@app.on_message(filters.command(["help"]) & filters.private & ~app.bl_users)
-@lang.language()
-async def _help(_, m: types.Message):
-    await m.reply_text(
-        text=m.lang["help_menu"],
-        reply_markup=buttons.help_markup(m.lang),
-        quote=True,
-    )
+# Pyrogram /help handler removed so PTB handles /help with Group Management buttons
+# @app.on_message(filters.command(["help"]) & filters.private & ~app.bl_users)
+# @lang.language()
+# async def _help(_, m: types.Message):
+#     await m.reply_text(
+#         text=m.lang["help_menu"],
+#         reply_markup=buttons.help_markup(m.lang),
+#         quote=True,
+#     )
 
 
 @app.on_message(filters.command(["start"]))
@@ -34,8 +35,7 @@ async def start(_, message: types.Message):
     if message.from_user.id in app.bl_users and message.from_user.id not in db.notified:
         return await message.reply_text(message.lang["bl_user_notify"])
 
-    if len(message.command) > 1 and message.command[1] == "help":
-        return await _help(_, message)
+    # start=help handled natively by PTB handler
 
     private = message.chat.type == enums.ChatType.PRIVATE
 

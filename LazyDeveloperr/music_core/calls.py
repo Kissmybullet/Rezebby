@@ -402,11 +402,16 @@ class TgCall(PyTgCalls):
                 if msg:
                     try:
                         await msg.edit_text(
-                            _lang["error_no_file"].format(config.SUPPORT_CHAT)
+                            f"❌ **Download failed for:** `{media.title}`\n\nSkipping to next queued track..."
                         )
                     except Exception:
                         pass
-                return await self.play_next(chat_id)
+                # Check if there are remaining tracks in queue before calling play_next
+                if queue.get(chat_id):
+                    return await self.play_next(chat_id)
+                else:
+                    await self.stop(chat_id)
+                    return await app.send_message(chat_id, _lang["queue_finished"])
 
         media.message_id = msg.id
         await self.play_media(chat_id, msg, media)

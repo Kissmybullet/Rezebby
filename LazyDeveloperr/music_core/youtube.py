@@ -312,6 +312,7 @@ class YouTube:
                         except Exception:
                             pass
 
+                cookie_path = self.get_cookies()
                 ydl_opts = {
                     "format": "bestaudio/best" if not video else "best[ext=mp4]/best",
                     "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
@@ -322,7 +323,15 @@ class YouTube:
                     "noplaylist": True,
                     "overwrites": True,
                     "socket_timeout": 20,
+                    "extractor_args": {
+                        "youtube": {
+                            "player_client": ["android", "web", "mweb", "ios"]
+                        }
+                    }
                 }
+                if cookie_path:
+                    ydl_opts["cookiefile"] = cookie_path
+
                 try:
                     logger.info(f"[Music] Direct YouTube downloading exact track ID: {video_id}")
                     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -334,7 +343,35 @@ class YouTube:
                 except Exception as yt_err:
                     logger.warning(f"[Music] Direct YouTube download failed ({yt_err}). Attempting fallbacks...")
 
-            # Strategy 2: SoundCloud Search Fallback
+            # Strategy 2: YouTube Search Fallback via yt-dlp (ytsearch1)
+            try:
+                logger.info(f"[Music] yt-dlp ytsearch1 fallback: {search_query}")
+                yt_search_opts = {
+                    "format": "bestaudio/best" if not video else "best[ext=mp4]/best",
+                    "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
+                    "geo_bypass": True,
+                    "nocheckcertificate": True,
+                    "quiet": True,
+                    "no_warnings": True,
+                    "noplaylist": True,
+                    "overwrites": True,
+                    "socket_timeout": 15,
+                    "extractor_args": {
+                        "youtube": {
+                            "player_client": ["android", "mweb", "ios"]
+                        }
+                    }
+                }
+                with yt_dlp.YoutubeDL(yt_search_opts) as yt_s_ydl:
+                    yt_s_ydl.extract_info(f"ytsearch1:{search_query}", download=True)
+                res = get_matching_file()
+                if res:
+                    logger.info(f"[Music] yt-dlp ytsearch1 download success: {res}")
+                    return res
+            except Exception as yt_s_err:
+                logger.warning(f"[Music] yt-dlp ytsearch1 failed ({yt_s_err}).")
+
+            # Strategy 3: SoundCloud Search Fallback
             sc_opts = {
                 "format": "bestaudio/best",
                 "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
