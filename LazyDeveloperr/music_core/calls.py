@@ -32,6 +32,7 @@ class TgCall(PyTgCalls):
         self.clients = []
         self.restarting = defaultdict(int)
         self.prefetch_tasks = {}
+        self.skipping_chats = {}
 
     async def pause(self, chat_id: int) -> bool:
         client = await db.get_assistant(chat_id)
@@ -286,6 +287,7 @@ class TgCall(PyTgCalls):
         await self.play_media(chat_id, msg, media)
 
     async def play_next(self, chat_id: int, skip_user: str = None) -> None:
+        self.skipping_chats[chat_id] = time.time()
         if loop := await db.get_loop(chat_id):
             await db.set_loop(chat_id, loop - 1)
             return await self.replay(chat_id)
@@ -454,6 +456,8 @@ class TgCall(PyTgCalls):
 
             elif isinstance(update, types.StreamEnded):
                 if update.stream_type == types.StreamEnded.Type.AUDIO:
+                    if time.time() - self.skipping_chats.get(update.chat_id, 0) < 3.0:
+                        return
                     if self.restarting.get(update.chat_id):
                         return
                     await self.play_next(update.chat_id)

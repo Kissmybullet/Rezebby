@@ -169,6 +169,8 @@ class Quotly:
         }
 
         apis = [
+            "https://quotly.mishrashen.workers.dev/generate",
+            "https://quotly-api.vercel.app/generate",
             "https://quote-api.up.railway.app/generate",
             "https://quote.statusking.link/generate",
             "https://bot.lyo.su/quote/generate",
