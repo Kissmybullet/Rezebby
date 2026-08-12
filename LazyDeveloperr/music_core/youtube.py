@@ -409,7 +409,8 @@ class YouTube:
                 client = await self.get_client()
 
                 enc_url = None
-                safe_q = urllib.parse.quote(artist_title_query)
+                clean_search_q = re.split(r"[-|(\[]", title)[0].strip() if title else search_term
+                safe_q = urllib.parse.quote(clean_search_q)
                 jio_api = f"https://www.jiosaavn.com/api.php?__call=search.getResults&q={safe_q}&_format=json&p=1&n=10"
                 async with client.get(jio_api, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}) as resp:
                     if resp.status == 200:

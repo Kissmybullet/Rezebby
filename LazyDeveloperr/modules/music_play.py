@@ -167,10 +167,13 @@ async def play_hndlr(
         await sent.edit_text(m.lang["play_downloading"])
         file.file_path = await yt.download(file.id, video=video, title=file.title)
 
+    if not file.file_path and file.title:
+        # Fallback search by title
+        file.file_path = await yt.download(file.title, video=video)
+
     if not file.file_path:
         return await sent.edit_text(
-            f"❌ **Download failed!**\n\nUnable to download the audio. "
-            f"Please add `cookies.txt` to the bot root directory and try again."
+            f"❌ **Audio Download Failed**\n\nUnable to stream this track right now. Please try another song or query!"
         )
 
     await Kartik.play_media(chat_id=m.chat.id, message=sent, media=file)
