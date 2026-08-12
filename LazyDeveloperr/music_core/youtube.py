@@ -325,7 +325,7 @@ class YouTube:
                     "socket_timeout": 20,
                     "extractor_args": {
                         "youtube": {
-                            "player_client": ["android", "web", "mweb", "ios"]
+                            "player_client": ["android", "ios", "tv_embedded"]
                         }
                     }
                 }
@@ -358,7 +358,7 @@ class YouTube:
                     "socket_timeout": 15,
                     "extractor_args": {
                         "youtube": {
-                            "player_client": ["android", "mweb", "ios"]
+                            "player_client": ["android", "ios", "tv_embedded"]
                         }
                     }
                 }
@@ -421,7 +421,12 @@ class YouTube:
                         title_lower = (title or "").lower()
                         best = None
 
-                        clean_words = [w for w in re.findall(r"\w+", title_lower) if len(w) > 2 and w not in ("feat", "featuring", "remix", "version", "official", "audio", "video", "sang", "song")]
+                        # Extract main song title before hyphen, pipe, or brackets
+                        main_title = re.split(r"[-|(\[]", title_lower)[0].strip()
+                        main_words = [w for w in re.findall(r"\w+", main_title) if len(w) > 1 and w not in ("feat", "featuring", "remix", "version", "official", "audio", "video", "song")]
+                        if not main_words:
+                            main_words = [w for w in re.findall(r"\w+", title_lower) if len(w) > 2]
+
                         for r in results:
                             r_song = (r.get("song") or r.get("title") or "").lower()
                             r_artists = (r.get("primary_artists") or r.get("singers") or "").lower()
@@ -430,8 +435,11 @@ class YouTube:
                             if _bad.search(r_song):
                                 continue
 
-                            # Require all significant title words to match for JioSaavn
-                            title_match = all(w in r_song for w in clean_words) if clean_words else title_lower in r_song
+                            # Match main title words in JioSaavn song name
+                            title_match = all(w in r_song for w in main_words) if main_words else main_title in r_song
+                            if not title_match and len(main_words) >= 2:
+                                title_match = all(w in r_song for w in main_words[:2])
+
                             artist_match = artist_lower and artist_lower in r_artists
 
                             if has_enc and has_trusted_artist and artist_match and title_match:
