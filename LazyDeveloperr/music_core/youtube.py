@@ -313,41 +313,48 @@ class YouTube:
                             pass
 
                 cookie_path = self.get_cookies()
-                ydl_opts = {
-                    "format": "bestaudio/best" if not video else "best[ext=mp4]/best",
-                    "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
-                    "geo_bypass": True,
-                    "nocheckcertificate": True,
-                    "quiet": True,
-                    "no_warnings": True,
-                    "noplaylist": True,
-                    "overwrites": True,
-                    "socket_timeout": 20,
-                    "extractor_args": {
-                        "youtube": {
-                            "player_client": ["android", "ios", "tv_embedded"]
+                client_configs = [
+                    ["android", "ios", "mweb"],
+                    ["tv_embedded", "android_creator", "ios"],
+                    ["web_creator", "android", "mweb"]
+                ]
+
+                for player_clients in client_configs:
+                    ydl_opts = {
+                        "format": "bestaudio[ext=m4a]/bestaudio/best" if not video else "best[ext=mp4]/best",
+                        "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
+                        "geo_bypass": True,
+                        "nocheckcertificate": True,
+                        "quiet": True,
+                        "no_warnings": True,
+                        "noplaylist": True,
+                        "overwrites": True,
+                        "socket_timeout": 20,
+                        "extractor_args": {
+                            "youtube": {
+                                "player_client": player_clients
+                            }
                         }
                     }
-                }
-                if cookie_path:
-                    ydl_opts["cookiefile"] = cookie_path
+                    if cookie_path:
+                        ydl_opts["cookiefile"] = cookie_path
 
-                try:
-                    logger.info(f"[Music] Direct YouTube downloading exact track ID: {video_id}")
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        ydl.download([yt_url])
-                    res = get_matching_file()
-                    if res:
-                        logger.info(f"[Music] Direct YouTube download success: {res}")
-                        return res
-                except Exception as yt_err:
-                    logger.warning(f"[Music] Direct YouTube download failed ({yt_err}). Attempting fallbacks...")
+                    try:
+                        logger.info(f"[Music] Direct YouTube downloading exact track ID: {video_id} using clients: {player_clients}")
+                        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                            ydl.download([yt_url])
+                        res = get_matching_file()
+                        if res:
+                            logger.info(f"[Music] Direct YouTube download success: {res}")
+                            return res
+                    except Exception as yt_err:
+                        logger.warning(f"[Music] YouTube direct download failed with clients {player_clients} ({yt_err}). Retrying next client...")
 
             # Strategy 2: YouTube Search Fallback via yt-dlp (ytsearch1)
             try:
                 logger.info(f"[Music] yt-dlp ytsearch1 fallback: {search_query}")
                 yt_search_opts = {
-                    "format": "bestaudio/best" if not video else "best[ext=mp4]/best",
+                    "format": "bestaudio[ext=m4a]/bestaudio/best" if not video else "best[ext=mp4]/best",
                     "outtmpl": os.path.join("downloads", f"{safe_name}.%(ext)s"),
                     "geo_bypass": True,
                     "nocheckcertificate": True,
@@ -358,7 +365,7 @@ class YouTube:
                     "socket_timeout": 15,
                     "extractor_args": {
                         "youtube": {
-                            "player_client": ["android", "ios", "tv_embedded"]
+                            "player_client": ["android", "ios", "mweb"]
                         }
                     }
                 }
