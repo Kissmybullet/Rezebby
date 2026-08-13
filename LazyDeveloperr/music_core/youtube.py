@@ -435,12 +435,16 @@ class YouTube:
                         if not main_words:
                             main_words = [w for w in re.findall(r"\w+", title_lower) if len(w) > 2]
 
+                        extra_context = [w for w in re.findall(r"\w+", title_lower) if len(w) > 2 and w not in main_words and w not in ("feat", "featuring", "remix", "version", "official", "audio", "video", "song", "must")]
+
+                        highest_score = -1
                         for r in results:
                             r_song = (r.get("song") or r.get("title") or "").lower()
                             r_artists = (r.get("primary_artists") or r.get("singers") or "").lower()
+                            r_album = (r.get("album") or "").lower()
                             has_enc = bool(r.get("encrypted_media_url"))
 
-                            if _bad.search(r_song):
+                            if not has_enc or _bad.search(r_song):
                                 continue
 
                             # Match main title words in JioSaavn song name
@@ -448,12 +452,17 @@ class YouTube:
                             if not title_match and len(main_words) >= 2:
                                 title_match = all(w in r_song for w in main_words[:2])
 
-                            artist_match = artist_lower and artist_lower in r_artists
+                            if not title_match:
+                                continue
 
-                            if has_enc and has_trusted_artist and artist_match and title_match:
-                                best = r
-                                break
-                            if has_enc and title_match and not best:
+                            score = sum(1 for w in main_words if w in r_song) * 10
+                            score += sum(2 for w in extra_context if w in r_song or w in r_artists or w in r_album)
+
+                            if artist_lower and artist_lower in r_artists:
+                                score += 25
+
+                            if score > highest_score:
+                                highest_score = score
                                 best = r
 
                         if best:

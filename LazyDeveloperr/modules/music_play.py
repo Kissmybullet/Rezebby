@@ -165,7 +165,9 @@ async def play_hndlr(
 
     if not file.file_path:
         await sent.edit_text(m.lang["play_downloading"])
-        file.file_path = await yt.download(file.id, video=video, title=file.title)
+        file.file_path = await yt.download(
+            file.id, video=video, title=file.title, artist=getattr(file, "artist", None)
+        )
 
     if not file.file_path and file.title:
         # Fallback search by title
