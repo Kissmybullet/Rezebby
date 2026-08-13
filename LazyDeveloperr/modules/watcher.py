@@ -17,7 +17,7 @@ chat_watcher_group = 1
     group=chat_watcher_group,
 )
 async def chat_watcher_func(_, message):
-    if message.sender_chat:
+    if not message.from_user:
         return
     userid = message.from_user.id
     user_name = message.from_user.first_name
@@ -72,7 +72,7 @@ async def chat_watcher_func(_, message):
             msg += f"**{user_name[:25]}** ɪs ʙᴀᴄᴋ ᴏɴʟɪɴᴇ\n\n"
 
     # Replied to a User which is AFK
-    if message.reply_to_message:
+    if message.reply_to_message and message.reply_to_message.from_user:
         try:
             replied_first_name = message.reply_to_message.from_user.first_name
             replied_user_id = message.reply_to_message.from_user.id
